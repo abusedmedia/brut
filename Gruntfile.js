@@ -18,32 +18,18 @@ module.exports = function (grunt) {
       options: {
         cwd: appFolder
       },
-      files: ['**/*.md', '**/*.ejs', '!node_modules/**/*'], //, '**/*.css'], //, 'scss/**/*.scss', 'js/**/*.js'],
-      tasks: ['ejs:dev']
+      files: ['**/*.json', '**/*.ejs', '!node_modules/**/*'], //, '**/*.css'], //, 'scss/**/*.scss', 'js/**/*.js'],
+      tasks: ['localdata', 'ejs:dev']
     },
 
     ejs: {
       dev: {
-        options: {
-          title: 'My Website',
-          url: function (url) {
-            return 'http://example.com/formatted/url/' + url
-          }
-        },
+        options: '<%= localdata %>',
         cwd: appFolder,
         src: ['**/*.ejs', '!**/_*.ejs', '!node_modules/**/*'],
         dest: appFolder,
         expand: true,
         ext: '.html'
-      }
-    },
-
-    copy: {
-      dev: {
-        expand: true,
-        cwd: appFolder,
-        src: '**/*.css',
-        dest: devFolder
       }
     },
 
@@ -63,15 +49,24 @@ module.exports = function (grunt) {
           open: false
         }
       }
+    },
+
+    localdata: {
+      dev: {
+        expand: true,
+        cwd: baseProject,
+        src: '**/*.json'
+      }
     }
   })
 
   grunt.loadNpmTasks('grunt-contrib-watch')
   grunt.loadNpmTasks('grunt-ejs')
   grunt.loadNpmTasks('grunt-browser-sync')
-  grunt.loadNpmTasks('grunt-contrib-copy')
 
-  // grunt.registerTask('build', ['ejs:build'])
+  grunt.registerMultiTask('localdata', 'Read local data', require('./plugins/localdata.js'))
 
-  grunt.registerTask('dev', ['ejs:dev', 'browserSync', 'watch'])
+  grunt.registerTask('dev', ['localdata', 'ejs:dev', 'browserSync', 'watch'])
+
+  grunt.registerTask('ttt', ['localdata', 'ejs:dev'])
 }
