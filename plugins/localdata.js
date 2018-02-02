@@ -3,9 +3,10 @@
 var grunt = require('grunt')
 var path = require('path')
 var fs = require('fs')
+var _ = require('lodash')
 
 module.exports = function () {
-  var ob = {}
+  var ob = {_: _}
   this.files.forEach(function (filePair) {
     var f = filePair.orig.cwd
     var p = filePair.src[0]
