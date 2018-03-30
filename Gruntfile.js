@@ -14,7 +14,8 @@ module.exports = function (grunt) {
 
   var brut = {
     publicFolder: 'public',
-    asyncBundle: true
+    asyncBundle: true,
+    inlineCSS: true
   }
 
   if (localPkg.brut) {
@@ -38,7 +39,7 @@ module.exports = function (grunt) {
         cwd: appFolder
       },
       files: ['**/*.json', '**/*.ejs', '!node_modules/**'], //, '**/*.css'], //, 'scss/**/*.scss', 'js/**/*.js'],
-      tasks: ['localdata', 'ejs:dev']
+      tasks: ['localdata:dev', 'ejs:dev']
     },
 
     ejs: {
@@ -47,6 +48,14 @@ module.exports = function (grunt) {
         cwd: appFolder,
         src: ['**/*.ejs', '!**/_*.ejs', '!node_modules/**/*'],
         dest: appFolder,
+        expand: true,
+        ext: '.html'
+      },
+      build: {
+        options: '<%= localdata %>',
+        cwd: tmpFolder,
+        src: ['**/*.ejs', '!**/_*.ejs', '!node_modules/**/*'],
+        dest: tmpFolder,
         expand: true,
         ext: '.html'
       }
@@ -75,6 +84,11 @@ module.exports = function (grunt) {
         expand: true,
         cwd: appFolder,
         src: ['**/*.json', '!node_modules/**', '!package.json', '!package-lock.json']
+      },
+      build: {
+        expand: true,
+        cwd: tmpFolder,
+        src: ['**/*.json', '!node_modules/**', '!package.json', '!package-lock.json']
       }
     },
 
@@ -93,6 +107,20 @@ module.exports = function (grunt) {
           }
         ]
       }
+    },
+
+    concat: {
+      options: {
+        sourceMap: true
+      },
+      generated: {}
+    },
+
+    cssmin: {
+      options: {
+        sourceMap: true
+      },
+      generated: {}
     },
 
     useminPrepare: {
@@ -184,7 +212,74 @@ module.exports = function (grunt) {
         src: ['*.html', '**/*.html'],
         dest: tmpFolder
       }
-    }
+    },
+
+    htmlmin: {
+      multi: {
+        options: {
+          removeComments: true,
+          collapseWhitespace: true
+        },
+        expand: true,
+        cwd: tmpFolder,
+        src: ['*.html', '**/*.html', '!node_modules/**'],
+        dest: tmpFolder
+      }
+    },
+
+    svgmin: {
+      options: {
+        plugins: [
+            {removeViewBox: false},
+            {removeDoctype: true},
+            {removeUselessStrokeAndFill: false},
+            {convertTransform: false},
+            {cleanupIDs: false},
+            {mergePaths: false},
+            {convertShapeToPath: false},
+            {moveElemsAttrsToGroup: false},
+            {moveGroupAttrsToElems: false}
+        ]
+      },
+      dist: {
+        files: [
+          {
+            expand: true,
+            cwd: tmpFolder,
+            src: ['**/*.svg'],
+            dest: tmpFolder
+          }
+        ]
+      }
+    },
+
+    /*
+      Utilities
+    */
+
+    inline: {
+      dist: {
+        options: {
+        },
+        files: [{
+          expand: true,
+          cwd: tmpFolder,
+          src: ['*.html', '**/*.html', '!node_modules/**'],
+          dest: tmpFolder
+        }]
+      }
+    },
+
+    clean: {
+      options: {
+        force: false // set to true to delete fonders outside the current, dangerous, dont
+      },
+      build: {
+        src: [path.join(tmpFolder, '*.ejs'), path.join(tmpFolder, '**/*.ejs'), '!' + path.join(tmpFolder, 'node_modules/**')]
+      }
+    },
+
+    fetchJson: brut.fetch
 
   })
 
@@ -198,20 +293,38 @@ module.exports = function (grunt) {
   grunt.loadNpmTasks('grunt-contrib-cssmin')
   grunt.loadNpmTasks('grunt-contrib-uglify')
   grunt.loadNpmTasks('grunt-processhtml')
+  grunt.loadNpmTasks('grunt-contrib-htmlmin')
+  grunt.loadNpmTasks('grunt-inline')
+  grunt.loadNpmTasks('grunt-svgmin')
+  grunt.loadNpmTasks('grunt-fetch-json')
+  grunt.loadNpmTasks('grunt-contrib-clean')
 
   grunt.registerMultiTask('localdata', 'Read local data', require('./plugins/localdata.js'))
 
-  grunt.registerTask('dev', ['localdata', 'ejs:dev', 'browserSync', 'watch'])
+  grunt.registerTask('dev', ['localdata:dev', 'ejs:dev', 'browserSync', 'watch'])
 
-  grunt.registerTask('build', [
+  var buildTasks = [
     'copy:build',
+
+    'svgmin',
+    'localdata:build',
+    'ejs:build',
+    'clean:build',
+
     'useminPrepare',
     'concat:generated',
     'postcss',
     'uglify:generated',
     'cssmin:generated',
-    'usemin'
+    'usemin',
 
-    // 'processhtml'
-  ])
+    'processhtml',
+    'htmlmin'
+
+  ]
+
+  if (brut.inlineCSS) buildTasks.push('inline')
+  if (brut.fetch) buildTasks.push('fetchJson')
+
+  grunt.registerTask('build', buildTasks)
 }
