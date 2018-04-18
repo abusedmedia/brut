@@ -15,7 +15,8 @@ module.exports = function (grunt) {
   var brut = {
     publicFolder: 'public',
     asyncBundle: true,
-    inlineCSS: true
+    inlineCSS: true,
+    cleanEjs: false
   }
 
   if (localPkg.brut) {
@@ -24,7 +25,7 @@ module.exports = function (grunt) {
     }
   }
 
-  var pubFolder = path.join(appFolder, '/', brut.publicFolder)
+  var pubFolder = path.join(baseProject, '/', brut.publicFolder)
 
   var version = localPkg.version
 
@@ -42,7 +43,7 @@ module.exports = function (grunt) {
       tasks: ['localdata:dev', 'ejs:dev']
     },
 
-    ejs: {
+    ejsjson: {
       dev: {
         options: '<%= localdata %>',
         cwd: appFolder,
@@ -104,6 +105,16 @@ module.exports = function (grunt) {
             cwd: appFolder,
             src: ['**/*'],
             dest: tmpFolder
+          }
+        ]
+      },
+      pub: {
+        files: [
+          {
+            expand: true,
+            cwd: tmpFolder,
+            src: ['**/*'],
+            dest: pubFolder
           }
         ]
       }
@@ -272,7 +283,7 @@ module.exports = function (grunt) {
 
     clean: {
       options: {
-        force: false // set to true to delete fonders outside the current, dangerous, dont
+        force: brut.cleanEjs // set to true to delete folders outside the current, dangerous, dont
       },
       build: {
         src: [path.join(tmpFolder, '*.ejs'), path.join(tmpFolder, '**/*.ejs'), '!' + path.join(tmpFolder, 'node_modules/**')]
@@ -284,7 +295,7 @@ module.exports = function (grunt) {
   })
 
   grunt.loadNpmTasks('grunt-contrib-watch')
-  grunt.loadNpmTasks('grunt-ejs')
+  grunt.loadNpmTasks('grunt-ejsjson')
   grunt.loadNpmTasks('grunt-browser-sync')
   grunt.loadNpmTasks('grunt-contrib-copy')
   grunt.loadNpmTasks('grunt-usemin')
@@ -298,17 +309,17 @@ module.exports = function (grunt) {
   grunt.loadNpmTasks('grunt-svgmin')
   grunt.loadNpmTasks('grunt-fetch-json')
   grunt.loadNpmTasks('grunt-contrib-clean')
+  grunt.loadNpmTasks('grunt-localdata')
+  grunt.loadNpmTasks('grunt-md2ejs')
 
-  grunt.registerMultiTask('localdata', 'Read local data', require('./plugins/localdata.js'))
-
-  grunt.registerTask('dev', ['localdata:dev', 'ejs:dev', 'browserSync', 'watch'])
+  grunt.registerTask('dev', ['localdata:dev', 'ejsjson:dev', 'browserSync', 'watch'])
 
   var buildTasks = [
     'copy:build',
 
     'svgmin',
     'localdata:build',
-    'ejs:build',
+    'ejsjson:build',
     'clean:build',
 
     'useminPrepare',
@@ -319,7 +330,9 @@ module.exports = function (grunt) {
     'usemin',
 
     'processhtml',
-    'htmlmin'
+    'htmlmin',
+
+    'copy:pub'
 
   ]
 
